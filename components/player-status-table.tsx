@@ -289,20 +289,18 @@ export function PlayerStatusTable() {
   }
 
   return (
-    <div className="w-full space-y-6">
-      <div className="flex justify-end">
+    <div className="relative w-full space-y-6 pt-4">
+      <div className="fixed top-4 right-4 z-50">
         <Button
           variant="outline"
           size="icon"
           onClick={handleLockToggle}
-          className="h-10 w-10 rounded-full bg-transparent"
+          className="h-10 w-10 rounded-full bg-white shadow-lg border-2"
           title={isLocked ? "Tabelle entsperren" : "Tabelle sperren"}
         >
           {isLocked ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
         </Button>
       </div>
-
-      <h1 className="text-3xl font-bold">Player Status Tracker</h1>
 
       {!isLocked && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
