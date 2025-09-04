@@ -290,8 +290,7 @@ export function PlayerStatusTable() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Player Status Tracker</h1>
+      <div className="flex justify-end">
         <Button
           variant="outline"
           size="icon"
@@ -302,6 +301,8 @@ export function PlayerStatusTable() {
           {isLocked ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
         </Button>
       </div>
+
+      <h1 className="text-3xl font-bold">Player Status Tracker</h1>
 
       {!isLocked && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -346,9 +347,6 @@ export function PlayerStatusTable() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Player Status Table</CardTitle>
-        </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
