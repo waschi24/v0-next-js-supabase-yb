@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ConfirmationModal } from "@/components/ui/confirmation-modal"
-import { Plus, Trash2 } from "lucide-react"
+import { LockModal } from "@/components/ui/lock-modal"
+import { Plus, Trash2, Lock, Unlock, Trophy } from "lucide-react"
 
 type Player = {
   id: string
@@ -28,7 +29,7 @@ type PlayerStatus = {
 const STATUS_COLORS = {
   white: "bg-white border-2 border-gray-300",
   red: "bg-red-500",
-  orange: "bg-orange-500",
+  orange: "bg-amber-500",
   green: "bg-green-500",
 }
 
@@ -52,6 +53,8 @@ export function PlayerStatusTable() {
     id: "",
     name: "",
   })
+  const [isLocked, setIsLocked] = useState(true)
+  const [showLockModal, setShowLockModal] = useState(false)
 
   const supabase = createClient()
 
@@ -248,58 +251,103 @@ export function PlayerStatusTable() {
     })
   }
 
+  const handleUnlock = () => {
+    setIsLocked(false)
+  }
+
+  const handleLockToggle = () => {
+    if (isLocked) {
+      setShowLockModal(true)
+    } else {
+      setIsLocked(true)
+    }
+  }
+
+  const calculateLeaderboard = () => {
+    const playerScores = players.map((player) => {
+      let totalScore = 0
+      games.forEach((game) => {
+        const status = getPlayerStatus(player.id, game.id)
+        if (status === "green") {
+          totalScore += 1
+        } else if (status === "orange") {
+          totalScore += 0.75
+        }
+        // red and white = 0 points (no addition needed)
+      })
+      return {
+        player,
+        score: totalScore,
+      }
+    })
+
+    return playerScores.sort((a, b) => b.score - a.score)
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center p-8">Loading...</div>
   }
 
   return (
     <div className="w-full space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Player</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Player name"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addPlayer()}
-              />
-              <Button onClick={addPlayer} size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Game</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Game name"
-                value={newGameName}
-                onChange={(e) => setNewGameName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addGame()}
-              />
-              <Button onClick={addGame} size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Player Status Tracker</h1>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleLockToggle}
+          className="h-10 w-10 rounded-full bg-transparent"
+          title={isLocked ? "Tabelle entsperren" : "Tabelle sperren"}
+        >
+          {isLocked ? <Lock className="h-5 w-5" /> : <Unlock className="h-5 w-5" />}
+        </Button>
       </div>
+
+      {!isLocked && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Player</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Player name"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addPlayer()}
+                />
+                <Button onClick={addPlayer} size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Add Game</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Game name"
+                  value={newGameName}
+                  onChange={(e) => setNewGameName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addGame()}
+                />
+                <Button onClick={addGame} size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Player Status Table</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Click buttons to cycle through: White → Red → Orange → Green → White
-          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -313,14 +361,16 @@ export function PlayerStatusTable() {
                     <th key={game.id} className="border border-border p-2 text-center min-w-[100px] relative">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium truncate">{game.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 ml-1"
-                          onClick={() => handleDeleteClick("game", game.id, game.name)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {!isLocked && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 ml-1"
+                            onClick={() => handleDeleteClick("game", game.id, game.name)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </th>
                   ))}
@@ -332,14 +382,16 @@ export function PlayerStatusTable() {
                     <td className="sticky left-0 bg-background border border-border p-2 min-w-[120px] z-10">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium truncate">{player.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 ml-1"
-                          onClick={() => handleDeleteClick("player", player.id, player.name)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {!isLocked && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 ml-1"
+                            onClick={() => handleDeleteClick("player", player.id, player.name)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                     {games.map((game) => (
@@ -348,7 +400,7 @@ export function PlayerStatusTable() {
                           variant="outline"
                           size="sm"
                           className={`w-8 h-8 p-0 ${STATUS_COLORS[getPlayerStatus(player.id, game.id)]} hover:${STATUS_COLORS[getPlayerStatus(player.id, game.id)]} hover:opacity-100`}
-                          onClick={() => cycleStatus(player.id, game.id)}
+                          onClick={() => !isLocked && cycleStatus(player.id, game.id)}
                         />
                       </td>
                     ))}
@@ -366,6 +418,77 @@ export function PlayerStatusTable() {
         </CardContent>
       </Card>
 
+      {players.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              Leaderboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {calculateLeaderboard().map((entry, index) => (
+                <div
+                  key={entry.player.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                    index === 0
+                      ? "bg-yellow-50 border-yellow-200"
+                      : index === 1
+                        ? "bg-gray-50 border-gray-200"
+                        : index === 2
+                          ? "bg-orange-50 border-orange-200"
+                          : "bg-background"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`font-bold text-lg ${
+                        index === 0
+                          ? "text-yellow-600"
+                          : index === 1
+                            ? "text-gray-600"
+                            : index === 2
+                              ? "text-orange-600"
+                              : "text-muted-foreground"
+                      }`}
+                    >
+                      #{index + 1}
+                    </span>
+                    <span className="font-medium">{entry.player.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-lg">{entry.score}</span>
+                    <div className="text-xs text-muted-foreground">{entry.score === 1 ? "Punkt" : "Punkte"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div className="font-medium mb-2">Punktesystem:</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded"></div>
+                  <span>Grün = 1 Punkt</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-amber-500 rounded"></div>
+                  <span>Orange = 0,75 Punkte</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500 rounded"></div>
+                  <span>Rot = 0 Punkte</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-white border-2 border-gray-300 rounded"></div>
+                  <span>Weiß = 0 Punkte</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}
         onClose={closeConfirmation}
@@ -376,6 +499,8 @@ export function PlayerStatusTable() {
         cancelText="Cancel"
         variant="destructive"
       />
+
+      <LockModal isOpen={showLockModal} onClose={() => setShowLockModal(false)} onUnlock={handleUnlock} />
     </div>
   )
 }
