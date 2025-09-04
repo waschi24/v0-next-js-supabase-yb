@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ConfirmationModal } from "@/components/ui/confirmation-modal"
 import { Plus, Trash2 } from "lucide-react"
 
 type Player = {
@@ -40,6 +41,17 @@ export function PlayerStatusTable() {
   const [newPlayerName, setNewPlayerName] = useState("")
   const [newGameName, setNewGameName] = useState("")
   const [loading, setLoading] = useState(true)
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean
+    type: "player" | "game"
+    id: string
+    name: string
+  }>({
+    isOpen: false,
+    type: "player",
+    id: "",
+    name: "",
+  })
 
   const supabase = createClient()
 
@@ -80,7 +92,6 @@ export function PlayerStatusTable() {
         const newPlayer = data[0]
         setPlayers([...players, newPlayer])
 
-        // Create default status entries for all games
         const statusEntries = games.map((game) => ({
           player_id: newPlayer.id,
           game_id: game.id,
@@ -117,7 +128,6 @@ export function PlayerStatusTable() {
         const newGame = data[0]
         setGames([...games, newGame])
 
-        // Create default status entries for all players
         const statusEntries = players.map((player) => ({
           player_id: player.id,
           game_id: newGame.id,
@@ -212,13 +222,38 @@ export function PlayerStatusTable() {
     return status?.status || "white"
   }
 
+  const handleDeleteClick = (type: "player" | "game", id: string, name: string) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      type,
+      id,
+      name,
+    })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmation.type === "player") {
+      await removePlayer(deleteConfirmation.id)
+    } else {
+      await removeGame(deleteConfirmation.id)
+    }
+  }
+
+  const closeConfirmation = () => {
+    setDeleteConfirmation({
+      isOpen: false,
+      type: "player",
+      id: "",
+      name: "",
+    })
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center p-8">Loading...</div>
   }
 
   return (
     <div className="w-full space-y-6">
-      {/* Add Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
@@ -259,7 +294,6 @@ export function PlayerStatusTable() {
         </Card>
       </div>
 
-      {/* Status Table */}
       <Card>
         <CardHeader>
           <CardTitle>Player Status Table</CardTitle>
@@ -272,7 +306,7 @@ export function PlayerStatusTable() {
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-background border border-border p-2 text-left min-w-[120px]">
+                  <th className="sticky left-0 bg-background border border-border p-2 text-left min-w-[120px] z-10">
                     Player / Game
                   </th>
                   {games.map((game) => (
@@ -283,7 +317,7 @@ export function PlayerStatusTable() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 ml-1"
-                          onClick={() => removeGame(game.id)}
+                          onClick={() => handleDeleteClick("game", game.id, game.name)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -295,14 +329,14 @@ export function PlayerStatusTable() {
               <tbody>
                 {players.map((player) => (
                   <tr key={player.id}>
-                    <td className="sticky left-0 bg-background border border-border p-2 min-w-[120px]">
+                    <td className="sticky left-0 bg-background border border-border p-2 min-w-[120px] z-10">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium truncate">{player.name}</span>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 ml-1"
-                          onClick={() => removePlayer(player.id)}
+                          onClick={() => handleDeleteClick("player", player.id, player.name)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -331,6 +365,17 @@ export function PlayerStatusTable() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${deleteConfirmation.type === "player" ? "Player" : "Game"}`}
+        description={`Are you sure you want to delete "${deleteConfirmation.name}"? This action cannot be undone and will remove all associated status data.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   )
 }
