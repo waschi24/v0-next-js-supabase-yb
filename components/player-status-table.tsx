@@ -17,6 +17,7 @@ type Player = {
 type Game = {
   id: string
   name: string
+  created_at: string
 }
 
 type PlayerStatus = {
@@ -66,7 +67,7 @@ export function PlayerStatusTable() {
     try {
       const [playersRes, gamesRes, statusesRes] = await Promise.all([
         supabase.from("players").select("*").order("name"),
-        supabase.from("games").select("*").order("name"),
+        supabase.from("games").select("*").order("created_at"),
         supabase.from("player_status").select("*"),
       ])
 
